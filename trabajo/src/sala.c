@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 
+//Cambio hecho
 int *sala;
 int asientos;
 
