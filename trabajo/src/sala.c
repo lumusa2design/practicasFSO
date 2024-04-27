@@ -7,36 +7,61 @@ int *sala;
 int asientos;
 
 int guarda_estado_sala(char* ruta_fichero) {
-    FILE *archivo = fopen(ruta_fichero, "w");
-    if (archivo == NULL) {
-        perror("Error al abrir el archivo");
+   
+    int fid = open(ruta_fichero, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fid == -1) {
+        perror("Error en la apertura del fichero\n");
         return -1;
     }
 
-    // Calcular el número de asientos ocupados y libres
-    int ocupados = asientos_ocupados();
-    int libres = asientos_libres();
+    // Escribir capacidad de la sala
+    char capacidad_str[20];
+    int_to_str(capacidad_sala(), capacidad_str);
+    int capacidad_length = num_digits(capacidad_sala());
+    write(fid, "Capacidad de la sala: ", 22);
+    write(fid, capacidad_str, capacidad_length);
+    write(fid, "\n", 1);
 
-    // Escribir el número de asientos ocupados y libres
-    fprintf(archivo, "Asientos ocupados: %d\n", ocupados);
-    fprintf(archivo, "Asientos libres: %d\n", libres);
-    fprintf(archivo, "Capacidad de la sala: %d\n\n", capacidad_sala());
+    // Escribir asientos libres
+    char libres_str[20];
+    int_to_str(asientos_libres(), libres_str);
+    int libres_length = num_digits(asientos_libres());
+    write(fid, "Asientos libres: ", 17);
+    write(fid, libres_str, libres_length);
+    write(fid, "\n", 1);
 
-    // Escribir el estado de cada asiento
-    fprintf(archivo, "Estado de los asientos:\n");
+    // Escribir asientos ocupados
+    char ocupados_str[20];
+    int_to_str(asientos_ocupados(), ocupados_str);
+    int ocupados_length = num_digits(asientos_ocupados());
+    write(fid, "Asientos ocupados: ", 19);
+    write(fid, ocupados_str, ocupados_length);
+    write(fid, "\n", 1);
+
+    // Escribir estado de cada asiento
     for (int i = 0; i < capacidad_sala(); i++) {
-        fprintf(archivo, "Asiento %d: ", i);
-        int estado = estado_asiento(i);
-        if (estado == -1) {
-            fprintf(archivo, "No existe\n");
-        } else if (estado == 0) {
-            fprintf(archivo, "Libre\n");
+        char asiento_str[20];
+        int_to_str(i+1, asiento_str);
+        int asiento_length = num_digits(i+1);
+        write(fid, "\nAsiento ", 9);
+        write(fid, asiento_str, asiento_length);
+        write(fid, ": ", 2);
+        if (sala[i]==-1) {
+            write(fid, "Libre", 5);
         } else {
-            fprintf(archivo, "Ocupado (id: %d)\n", estado);
+            write(fid, "Ocupado por el id ", 18);
+            char info_id[12];
+            int_to_str(sala[i], info_id);
+            int info_id_length = num_digits(sala[i]);
+            write(fid, info_id, info_id_length);
         }
     }
 
-    fclose(archivo);
+    if (close(fid) == -1) {
+        perror("Error al cerrar el archivo");
+        return -1;
+    }
+
     return 0;
 }
 
