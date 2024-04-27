@@ -18,38 +18,38 @@ int guarda_estado_sala(char* ruta_fichero) {
     char capacidad_str[20];
     int_to_str(capacidad_sala(), capacidad_str);
     int capacidad_length = num_digits(capacidad_sala());
-    write(fid, "Capacidad de la sala: ", 22);
+    write(fid, "Capacidad de la sala: ", strlen("Capacidad de la sala: "));
     write(fid, capacidad_str, capacidad_length);
-    write(fid, "\n", 1);
+    write(fid, "\n", strlen("\n"));
 
     // Escribir asientos libres
     char libres_str[20];
     int_to_str(asientos_libres(), libres_str);
     int libres_length = num_digits(asientos_libres());
-    write(fid, "Asientos libres: ", 17);
+    write(fid, "Asientos libres: ", strlen("Asientos libres: "));
     write(fid, libres_str, libres_length);
-    write(fid, "\n", 1);
+    write(fid, "\n", strlen("\n"));
 
     // Escribir asientos ocupados
     char ocupados_str[20];
     int_to_str(asientos_ocupados(), ocupados_str);
     int ocupados_length = num_digits(asientos_ocupados());
-    write(fid, "Asientos ocupados: ", 19);
+    write(fid, "Asientos ocupados: ", strlen("Asientos ocupados: "));
     write(fid, ocupados_str, ocupados_length);
-    write(fid, "\n", 1);
+    write(fid, "\n", strlen("\n"));
 
     // Escribir estado de cada asiento
     for (int i = 0; i < capacidad_sala(); i++) {
         char asiento_str[20];
         int_to_str(i+1, asiento_str);
         int asiento_length = num_digits(i+1);
-        write(fid, "\nAsiento ", 9);
+        write(fid, "\nAsiento ", strlen("\nAsiento "));
         write(fid, asiento_str, asiento_length);
-        write(fid, ": ", 2);
+        write(fid, ": ", strlen(": "));
         if (sala[i]==-1) {
-            write(fid, "Libre", 5);
+            write(fid, "Libre", strlen("Libre"));
         } else {
-            write(fid, "Ocupado por el id ", 18);
+            write(fid, "Ocupado por el id ", strlen("Ocupado por el id "));
             char info_id[12];
             int_to_str(sala[i], info_id);
             int info_id_length = num_digits(sala[i]);
@@ -63,6 +63,20 @@ int guarda_estado_sala(char* ruta_fichero) {
     }
 
     return 0;
+}
+
+
+void int_to_str(int num, char* str) {
+    sprintf(str, "%d", num);
+}
+
+int num_digits(int num) {
+    int count = 0;
+    while (num != 0) {
+        num /= 10;
+        count++;
+    }
+    return count;
 }
 
 int crea_sala(int capacidad) {
