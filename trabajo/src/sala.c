@@ -13,16 +13,13 @@ int guarda_estado_sala(char* ruta_fichero) {
         return -1;
     }
 
-    // Calcular el número de asientos ocupados y libres
     int ocupados = asientos_ocupados();
     int libres = asientos_libres();
 
-    // Escribir el número de asientos ocupados y libres
     fprintf(archivo, "Asientos ocupados: %d\n", ocupados);
     fprintf(archivo, "Asientos libres: %d\n", libres);
     fprintf(archivo, "Capacidad de la sala: %d\n\n", capacidad_sala());
 
-    // Escribir el estado de cada asiento
     fprintf(archivo, "Estado de los asientos:\n");
     for (int i = 0; i < capacidad_sala(); i++) {
         fprintf(archivo, "Asiento %d: ", i);
