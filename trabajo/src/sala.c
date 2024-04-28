@@ -1,82 +1,88 @@
-#include "sala.h"
-#include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
+#include <string.h>
+
+#include <sys/stat.h>
+
+
+#include <stdio.h>
+#include <errno.h>
+
+
+#include <unistd.h>
+#include <fcntl.h>
 
 int *sala;
 int asientos;
 
-int guarda_estado_sala(char* ruta_fichero) {
-   
-    int fid = open(ruta_fichero, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fid == -1) {
-        perror("Error en la apertura del fichero\n");
+int guarda_estado_sala( char* ruta)
+{
+    ///Abrimos el fichero
+    int fid = open(ruta, O_WRONLY);
+
+    ///Comprobamos que se ha creado bien
+    if (fid == -1)
+    {
+        comprueba_error();
         return -1;
     }
 
-    // Escribir capacidad de la sala
-    char capacidad_str[20];
-    int_to_str(capacidad_sala(), capacidad_str);
-    int capacidad_length = num_digits(capacidad_sala());
-    write(fid, "Capacidad de la sala: ", strlen("Capacidad de la sala: "));
-    write(fid, capacidad_str, capacidad_length);
-    write(fid, "\n", strlen("\n"));
+    ///Creamos el buffer
+    char buf[320];
 
-    // Escribir asientos libres
-    char libres_str[20];
-    int_to_str(asientos_libres(), libres_str);
-    int libres_length = num_digits(asientos_libres());
-    write(fid, "Asientos libres: ", strlen("Asientos libres: "));
-    write(fid, libres_str, libres_length);
-    write(fid, "\n", strlen("\n"));
+    ///Comprobamos qeu se creó bien
+    if (buf == NULL){
+        comprueba_error();
+        return -1;
+    }
 
-    // Escribir asientos ocupados
-    char ocupados_str[20];
-    int_to_str(asientos_ocupados(), ocupados_str);
-    int ocupados_length = num_digits(asientos_ocupados());
-    write(fid, "Asientos ocupados: ", strlen("Asientos ocupados: "));
-    write(fid, ocupados_str, ocupados_length);
-    write(fid, "\n", strlen("\n"));
+    /// Sobreescribimos el numero de asientos de la sala
+    int len = sprintf(buf, "Capacidad de la sala: %d", capacidad_sala());
+    lseek(fid, -1*sizeof(char), SEEK_CUR);
+    write(fid, buf, len+1);
 
-    // Escribir estado de cada asiento
-    for (int i = 0; i < capacidad_sala(); i++) {
-        char asiento_str[20];
-        int_to_str(i+1, asiento_str);
-        int asiento_length = num_digits(i+1);
-        write(fid, "\nAsiento ", strlen("\nAsiento "));
-        write(fid, asiento_str, asiento_length);
-        write(fid, ": ", strlen(": "));
-        if (sala[i]==-1) {
-            write(fid, "Libre", strlen("Libre"));
-        } else {
-            write(fid, "Ocupado por el id ", strlen("Ocupado por el id "));
-            char info_id[12];
-            int_to_str(sala[i], info_id);
-            int info_id_length = num_digits(sala[i]);
-            write(fid, info_id, info_id_length);
+
+    /// Sobreescribimos el numero de asientos reservados de la sala
+    len = sprintf(buf, "\nNúmero de asientos reservados: %d\n", asientos_ocupados());
+    lseek(fid, -1*sizeof(char), SEEK_CUR);
+    write(fid, buf, len);
+
+    /// Sobreescribimos el numero de asientos libres de la sala
+    len = sprintf(buf, "\nNúmero de asientos libres: %d\n\nSala: ", asientos_libres());
+    lseek(fid, -1*sizeof(char), SEEK_CUR);
+    write(fid, buf, len);
+
+    /// Sobreescribimos el vector de los asientos de la sala
+    for (int i = 0; i < sizeof(sala); i++) {
+        if (i != sizeof(sala))
+        {
+            len = sprintf(buf, "%d ", sala[i]);
+            write(fid, buf, len);
         }
     }
 
-    if (close(fid) == -1) {
-        perror("Error al cerrar el archivo");
+    ///Cerramos el fichero
+    close(fid);
+
+    ///Si el fichero se cierra mal devuelve -1
+    if (close(fid) == -1)
+    {
+        comprueba_error();
+        printf("mal");
         return -1;
     }
 
+    ///Si todo sale bien devuelve 0
     return 0;
 }
-
-
-void int_to_str(int num, char* str) {
-    sprintf(str, "%d", num);
-}
-
-int num_digits(int num) {
-    int count = 0;
-    while (num != 0) {
-        num /= 10;
-        count++;
+int comprueba_error()
+{
+    if (errno!=0)
+    {
+        fprintf(stderr, "ERROR con codigo %d: %s\n", errno, strerror(errno));
+        errno =0; //Siempre igualar a 0 si no cuando se vuelva a llamar sigue valiendo lo de antes
+        return -1;
     }
-    return count;
+    return 0;
 }
 
 int crea_sala(int capacidad) {
