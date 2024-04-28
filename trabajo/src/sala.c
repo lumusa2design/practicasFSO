@@ -15,43 +15,33 @@ int *sala;
 int asientos;
 
 int guarda_estado_sala( char* ruta){
-    ///Abrimos el fichero
     int fid = open(ruta, O_WRONLY);
 
-    ///Comprobamos que se ha creado bien
     if (fid == -1)
     {
         comprueba_error();
         return -1;
     }
 
-
-    ///Creamos el buffer
     char buf[320];
 
-    ///Comprobamos qeu se creó bien
     if (buf == NULL){
         comprueba_error();
         return -1;
     }
 
-    /// Sobreescribimos el numero de asientos de la sala
     int len = sprintf(buf, "Capacidad de la sala: %d", capacidad_sala());
     lseek(fid, -1*sizeof(char), SEEK_CUR);
     write(fid, buf, len+1);
 
-
-    /// Sobreescribimos el numero de asientos reservados de la sala
     len = sprintf(buf, "\nNúmero de asientos reservados: %d\n", asientos_ocupados());
     lseek(fid, -1*sizeof(char), SEEK_CUR);
     write(fid, buf, len);
 
-    /// Sobreescribimos el numero de asientos libres de la sala
     len = sprintf(buf, "\nNúmero de asientos libres: %d\n\nSala: ", asientos_libres());
     lseek(fid, -1*sizeof(char), SEEK_CUR);
     write(fid, buf, len);
 
-    /// Sobreescribimos el vector de los asientos de la sala
     for (int i = 0; i < sizeof(sala); i++) {
         if (i != sizeof(sala))
         {
@@ -60,18 +50,15 @@ int guarda_estado_sala( char* ruta){
         }
     }
 
-    ///Cerramos el fichero
     close(fid);
 
-    ///Si el fichero se cierra mal devuelve -1
     if (close(fid) == -1)
     {
         comprueba_error();
         printf("mal");
         return -1;
     }
-
-    ///Si todo sale bien devuelve 0
+    
     return 0;
 }
 int comprueba_error()
