@@ -73,7 +73,7 @@ void crea_sucursal(const char* ciudad, int capacidad) {
 
     pid_t pid = fork();
     if (pid == 0) {
-        execl("/usr/bin/xterm", "xterm", "-T", ciudad, "-e", "./minishell", capacity_str, NULL);
+        execl("/usr/bin/xterm", "xterm", "-T", ciudad, "-e", "./outputs/minishell", capacity_str, NULL);
         perror("Execl Failure");
         _exit(EXIT_FAILURE);
     } else if (pid < 0) {

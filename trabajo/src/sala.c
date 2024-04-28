@@ -14,8 +14,7 @@
 int *sala;
 int asientos;
 
-int guarda_estado_sala( char* ruta)
-{
+int guarda_estado_sala( char* ruta){
     ///Abrimos el fichero
     int fid = open(ruta, O_WRONLY);
 
@@ -25,6 +24,7 @@ int guarda_estado_sala( char* ruta)
         comprueba_error();
         return -1;
     }
+
 
     ///Creamos el buffer
     char buf[320];
