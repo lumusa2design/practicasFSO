@@ -24,4 +24,3 @@ void print_error(const char* msg) {
 }
 
 #include "sala.c"
-
