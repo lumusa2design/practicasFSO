@@ -3,81 +3,88 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "sala.h"
+#include "retardo.h"
 
-#define DELAY_TIME 100 
+#define NUM_ASIENTOS 250
+#define NUM_RESERVAS 3
+#define MAX_PAUSA_SEGUNDOS 0.25
 
-void retardo_milisegundos(int milisegundos) {
-    usleep(milisegundos * 1000);
-}
-
-void* reserva_y_libera(void* id) {
-    int hilo_id = *((int*)id);
-    int asientos_reservados[3];
-
-    for (int i = 0; i < 3; i++) {
-        retardo_milisegundos(DELAY_TIME);
-        int asiento = reserva_asiento(hilo_id);
+// Función para reserva y liberación de asientos
+void* reserva_y_libera(void* arg) {
+    int id_hilo = *((int*)arg);
+    int asientos_reservados[NUM_RESERVAS];
+    
+    // Reservar asientos
+    for (int i = 0; i < NUM_RESERVAS; ++i) {
+        pausa_aleatoria(MAX_PAUSA_SEGUNDOS);
+        int asiento = reserva_asiento(id_hilo);
         if (asiento == -1) {
-            printf("Hilo %d: No se pudo reservar asiento\n", hilo_id);
+            printf("Hilo %d: No se pudo reservar asiento\n", id_hilo);
             pthread_exit(NULL);
         }
+        printf("Hilo %d: Asiento %d reservado\n", id_hilo, asiento);
         asientos_reservados[i] = asiento;
-        printf("Hilo %d: Asiento %d reservado\n", hilo_id, asiento);
     }
 
-    for (int i = 0; i < 3; i++) {
-        retardo_milisegundos(DELAY_TIME);
-        int asiento_liberado = libera_asiento(asientos_reservados[i]);
-        if (asiento_liberado == -1) {
-            printf("Hilo %d: Error al liberar asiento %d\n", hilo_id, asientos_reservados[i]);
+    // Liberar asientos
+    for (int i = 0; i < NUM_RESERVAS; ++i) {
+        pausa_aleatoria(MAX_PAUSA_SEGUNDOS);
+        int resultado = libera_asiento(asientos_reservados[i]);
+        if (resultado == -1) {
+            printf("Hilo %d: Error al liberar asiento %d\n", id_hilo, asientos_reservados[i]);
             pthread_exit(NULL);
         }
-        printf("Hilo %d: Asiento %d liberado\n", hilo_id, asientos_reservados[i]);
+        printf("Hilo %d: Asiento %d liberado\n", id_hilo, asientos_reservados[i]);
     }
 
     pthread_exit(NULL);
 }
 
-void* muestra_estado(void* arg) {
+void* hilo_estado_sala(void* arg) {
     while (1) {
-        retardo_milisegundos(1500);
+        pausa_aleatoria(MAX_PAUSA_SEGUNDOS);
         estado_sala();
     }
-    pthread_exit(NULL);
 }
 
+// Función principal
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "Uso: %s <numero_de_hilos>\n", argv[0]);
+        fprintf(stderr, "Por favor, introduzca el número de hilos que quiere lanzar, de la forma: './multihilos x'\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    int n = atoi(argv[1]);
-    if (n <= 0) {
+    int num_hilos = atoi(argv[1]);
+    if (num_hilos <= 0) {
         fprintf(stderr, "El número de hilos debe ser un entero positivo\n");
         exit(EXIT_FAILURE);
     }
 
-    crea_sala(25);
+    // Inicializar la sala con un número fijo de asientos
+    crea_sala(NUM_ASIENTOS);
 
-    pthread_t hilos[n];
-    pthread_t hilo_estado;
-    int ids[n];
-
-    pthread_create(&hilo_estado, NULL, muestra_estado, NULL);
-
-    for (int i = 0; i < n; i++) {
-        ids[i] = i + 1;
-        pthread_create(&hilos[i], NULL, reserva_y_libera, &ids[i]);
+    // Crear los hilos para reserva y liberación de asientos
+    pthread_t hilos[num_hilos];
+    for (int i = 0; i < num_hilos; ++i) {
+        int* id_hilo = malloc(sizeof(int));
+        if (id_hilo == NULL) {
+            fprintf(stderr, "Error al asignar memoria para el ID del hilo\n");
+            exit(EXIT_FAILURE);
+        }
+        *id_hilo = i + 1;
+        pthread_create(&hilos[i], NULL, reserva_y_libera, id_hilo);
     }
 
-    for (int i = 0; i < n; i++) {
+    // Crear el hilo para imprimir el estado de la sala
+    pthread_t hilo_estado;
+    pthread_create(&hilo_estado, NULL, hilo_estado_sala, NULL);
+
+    // Esperar a que todos los hilos terminen
+    for (int i = 0; i < num_hilos; ++i) {
         pthread_join(hilos[i], NULL);
     }
 
-    pthread_cancel(hilo_estado);
-    pthread_join(hilo_estado, NULL);
-
+    // Eliminar la sala y finalizar
     elimina_sala();
     return 0;
 }

@@ -18,8 +18,9 @@ int crea_sala(int capacidad) {
         return -1;
     }
     sala = (int *)malloc(capacidad * sizeof(int));
+    printf("\n");
     asientos = capacidad;
-    for (int i = 0; i < capacidad; i++) {
+    for (int i = 1; i <= capacidad; i++) {
         sala[i] = -1;
     }
     return 0;
@@ -30,10 +31,7 @@ int reserva_asiento(int id_persona) {
         return -1;
     }
 
-    for (int i = 0; i < asientos; i++) {
-        if (sala[i] == id_persona) {
-            return -1;
-        }
+    for (int i = 1; i <= asientos; i++) {
         if (sala[i] == -1) {
             sala[i] = id_persona;
             return i;
@@ -67,7 +65,7 @@ int estado_asiento(int id_asiento) {
 
 int asientos_libres() {
     int asientos_libres_result = 0;
-    for (int i = 0; i < asientos; i++) {
+    for (int i = 1; i <= asientos; i++) {
         if (sala[i] == -1) {
             asientos_libres_result++;
         }
@@ -92,7 +90,7 @@ int elimina_sala() {
 
 
 void imprimir() {
-    for (int i = 0; i < asientos; i++) {
+    for (int i = 1; i <= asientos; i++) {
         printf("%d", sala[i]);
     }
     printf("\n");
@@ -100,7 +98,7 @@ void imprimir() {
 
 void estado_sala() {
 	printf("Estado de la sala:\n");
-	for (int i = 0; i <= capacidad_sala(); i++){
+	for (int i = 1; i <= capacidad_sala(); i++){
 		int estado = estado_asiento(i);
 		if (estado < 0) {
 			printf("Error en asiento %d\n", i);
@@ -281,4 +279,3 @@ int recupera_estadoparcial_sala(const char* ruta_fichero, size_t num_asientos, i
     close(fd);
     return 0;
 }
-
