@@ -1,82 +1,172 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <unistd.h>
-#include "sala.h"
-#include "retardo.h"
+#include <pthread.h>
+#include <time.h>
 
-#define NUM_ASIENTOS 250
+int *sala;
+int asientos;
+
 #define NUM_RESERVAS 3
-#define MAX_PAUSA_SEGUNDOS 0.25
 
-void* reserva_y_libera(void* arg) {
-    int id_hilo = *((int*)arg);
+typedef struct {
+    int id;
+} HiloReserva;
+
+void *reserva_y_libera(void *arg) {
+    HiloReserva *hilo = (HiloReserva *)arg;
+    int id = hilo->id;
     int asientos_reservados[NUM_RESERVAS];
-    
-    for (int i = 0; i < NUM_RESERVAS; ++i) {
-        pausa_aleatoria(MAX_PAUSA_SEGUNDOS);
-        int asiento = reserva_asiento(id_hilo);
-        if (asiento == -1) {
-            printf("Hilo %d: No se pudo reservar asiento\n", id_hilo);
-            pthread_exit(NULL);
+    srand(time(NULL) + id);
+
+    for (int i = 0; i < NUM_RESERVAS; i++) {
+        asientos_reservados[i] = reserva_asiento(id);
+        if (asientos_reservados[i] == -1) {
+            printf("Hilo %d: No se pudo realizar la reserva\n", id);
+        } else {
+            printf("Hilo %d: Asiento %d reservado\n", id, asientos_reservados[i]);
         }
-        printf("Hilo %d: Asiento %d reservado\n", id_hilo, asiento);
-        asientos_reservados[i] = asiento;
+        usleep((rand() % 1000 + 500) * 1000);
     }
 
-    for (int i = 0; i < NUM_RESERVAS; ++i) {
-        pausa_aleatoria(MAX_PAUSA_SEGUNDOS);
-        int resultado = libera_asiento(asientos_reservados[i]);
-        if (resultado == -1) {
-            printf("Hilo %d: Error al liberar asiento %d\n", id_hilo, asientos_reservados[i]);
-            pthread_exit(NULL);
+    for (int i = 0; i < NUM_RESERVAS; i++) {
+        int asiento_liberado = libera_asiento(asientos_reservados[i]);
+        if (asiento_liberado == -1) {
+            printf("Hilo %d: No se pudo liberar el asiento\n", id);
+        } else {
+            printf("Hilo %d: Asiento %d liberado\n", id, asientos_reservados[i]);
         }
-        printf("Hilo %d: Asiento %d liberado\n", id_hilo, asientos_reservados[i]);
+        usleep((rand() % 1000 + 500) * 1000);
     }
 
-    pthread_exit(NULL);
+    return NULL;
 }
 
-void* hilo_estado_sala(void* arg) {
+void *hilo_mostrar_estado(void *arg) {
     while (1) {
-        pausa_aleatoria(MAX_PAUSA_SEGUNDOS);
-        estado_sala();
+        printf("Estado del asiento: ");
+        for (int i = 1; i <= capacidad_sala(); i++) {
+            printf("%d ", estado_asiento(i));
+        }
+        printf("\n");
+        usleep(500000);
     }
+    return NULL;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
+    crea_sala(20);
+
     if (argc != 2) {
-        fprintf(stderr, "Por favor, introduzca el número de hilos que quiere lanzar, de la forma: './multihilos x'\n", argv[0]);
-        exit(EXIT_FAILURE);
+        printf("Error de sintaxis, uso correcto: multihilos n\n");
+        return 1;
     }
 
-    int num_hilos = atoi(argv[1]);
-    if (num_hilos <= 0) {
-        fprintf(stderr, "El número de hilos debe ser un entero positivo\n");
-        exit(EXIT_FAILURE);
+    int n = atoi(argv[1]);
+    if (n <= 0) {
+        printf("Error: Número inválido de hilos\n");
+        return 1;
     }
 
-    crea_sala(NUM_ASIENTOS);
-
-    pthread_t hilos[num_hilos];
-    for (int i = 0; i < num_hilos; ++i) {
-        int* id_hilo = malloc(sizeof(int));
-        if (id_hilo == NULL) {
-            fprintf(stderr, "Error al asignar memoria para el ID del hilo\n");
-            exit(EXIT_FAILURE);
-        }
-        *id_hilo = i + 1;
-        pthread_create(&hilos[i], NULL, reserva_y_libera, id_hilo);
-    }
-
+    pthread_t *hilos = malloc(sizeof(pthread_t) * n);
+    HiloReserva *hilos_reserva = malloc(sizeof(HiloReserva) * n);
     pthread_t hilo_estado;
-    pthread_create(&hilo_estado, NULL, hilo_estado_sala, NULL);
 
-    for (int i = 0; i < num_hilos; ++i) {
+    for (int i = 0; i < n; i++) {
+        hilos_reserva[i].id = i + 1;
+        pthread_create(&hilos[i], NULL, reserva_y_libera, (void *)&hilos_reserva[i]);
+    }
+
+    pthread_create(&hilo_estado, NULL, hilo_mostrar_estado, NULL);
+
+    for (int i = 0; i < n; i++) {
         pthread_join(hilos[i], NULL);
     }
 
+    pthread_cancel(hilo_estado);
+
+    free(hilos);
+    free(hilos_reserva);
+    
     elimina_sala();
+
     return 0;
 }
 
+int crea_sala(int capacidad) {
+    if (sala != NULL) {
+        elimina_sala();
+    }
+    if (capacidad <= 0) {
+        return -1;
+    }
+    sala = (int *)malloc(capacidad * sizeof(int));
+    asientos = capacidad;
+    for (int i = 1; i <= capacidad; i++) {
+        sala[i] = -1;
+    }
+    return 0;
+}
+
+int reserva_asiento(int id_persona) {
+    if (id_persona <= 0 || asientos_libres() == 0 || asientos == 0) {
+        return -1;
+    }
+
+    for (int i = 1; i <= asientos; i++) {
+        if (sala[i] == -1) {
+            sala[i] = id_persona;
+            return i;
+        }
+    }
+    return -1;
+}
+
+int libera_asiento(int id_asiento) {
+    if (id_asiento <= 0 || id_asiento > asientos) {
+        return -1;
+    }
+
+    if (sala[id_asiento] != -1) {
+        sala[id_asiento] = -1;
+        return id_asiento;
+    }
+    return -1;
+}
+
+int estado_asiento(int id_asiento) {
+    if (id_asiento < 1 || id_asiento > asientos) {
+        return -1;
+    }
+
+    if (sala[id_asiento] == -1) {
+        return 0;
+    } else {
+        return sala[id_asiento];
+    }
+}
+
+int asientos_libres() {
+    int asientos_libres_result = 0;
+    for (int i = 1; i <= asientos; i++) {
+        if (sala[i] == -1) {
+            asientos_libres_result++;
+        }
+    }
+    return asientos_libres_result;
+}
+
+int asientos_ocupados() {
+    return capacidad_sala() - asientos_libres();
+}
+
+int capacidad_sala() {
+    return asientos;
+}
+
+int elimina_sala() {
+    free(sala);
+    sala = NULL;
+    asientos = 0;
+    return 0;
+}
